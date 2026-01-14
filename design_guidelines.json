@@ -1,0 +1,177 @@
+{
+  "design_system": {
+    "name": "Obsidian & Parchment",
+    "theme": "dark",
+    "description": "A dark fantasy interface blending ancient cartography with tactical precision. Deep espresso backgrounds, worn leather textures, gold leaf accents, and faded ink typography.",
+    "typography": {
+      "font_family": {
+        "heading": "Cinzel, serif",
+        "body": "Lato, sans-serif",
+        "mono": "Fira Code, monospace",
+        "handwritten": "Caveat, cursive"
+      },
+      "imports": [
+        "https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=Lato:wght@300;400;700;900&family=Fira+Code:wght@400;600&family=Caveat:wght@400;700&display=swap"
+      ],
+      "scale": {
+        "h1": "text-4xl md:text-6xl font-black tracking-tight uppercase",
+        "h2": "text-3xl md:text-4xl font-bold tracking-wide border-b border-border/30 pb-2",
+        "h3": "text-xl md:text-2xl font-bold text-primary/90",
+        "body": "text-base leading-relaxed text-muted-foreground",
+        "caption": "text-xs uppercase tracking-widest text-muted-foreground/70",
+        "stat_value": "text-2xl font-mono font-bold text-foreground",
+        "stat_label": "text-[10px] uppercase tracking-wider text-muted-foreground"
+      }
+    },
+    "colors": {
+      "palette": {
+        "background": "#0f0e0d",
+        "foreground": "#e3d5c5",
+        "card": "#1a1614",
+        "card_foreground": "#e3d5c5",
+        "popover": "#1a1614",
+        "popover_foreground": "#e3d5c5",
+        "primary": "#c5a059",
+        "primary_foreground": "#0f0e0d",
+        "secondary": "#2a2624",
+        "secondary_foreground": "#e3d5c5",
+        "muted": "#2a2624",
+        "muted_foreground": "#9ca3af",
+        "accent": "#c5a059",
+        "accent_foreground": "#0f0e0d",
+        "destructive": "#8a2c2c",
+        "destructive_foreground": "#e3d5c5",
+        "border": "#3e3832",
+        "input": "#2a2624",
+        "ring": "#c5a059"
+      },
+      "gradients": {
+        "gold_glow": "linear-gradient(135deg, #c5a059 0%, #8a6d3b 100%)",
+        "blood_mist": "linear-gradient(to bottom, transparent, rgba(138, 44, 44, 0.2))",
+        "obsidian_glass": "linear-gradient(180deg, rgba(26, 22, 20, 0.8) 0%, rgba(15, 14, 13, 0.9) 100%)"
+      }
+    },
+    "visual_enhancers": {
+      "borders": {
+        "default": "border border-border/40",
+        "gold_trim": "border border-[#c5a059]/30",
+        "active_item": "border-l-2 border-l-primary bg-primary/5"
+      },
+      "shadows": {
+        "deep": "0 10px 30px -10px rgba(0, 0, 0, 0.8)",
+        "glow": "0 0 15px rgba(197, 160, 89, 0.15)",
+        "inset_slot": "inset 0 2px 4px rgba(0, 0, 0, 0.6)"
+      },
+      "textures": {
+        "parchment_overlay": "url('https://images.unsplash.com/photo-1634720092181-7b4a5908c5d5?crop=entropy&cs=srgb&fm=jpg&q=85')",
+        "noise": "url(\"data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.05'/%3E%3C/svg%3E\")"
+      },
+      "radius": {
+        "default": "rounded-md",
+        "panel": "rounded-lg",
+        "button": "rounded-sm"
+      }
+    },
+    "layout": {
+      "grid_system": "The Control Room (Mode B)",
+      "spacing": {
+        "container_padding": "p-4 md:p-6",
+        "section_gap": "gap-4 md:gap-6",
+        "item_gap": "gap-2"
+      },
+      "z_index": {
+        "map": "z-0",
+        "grid": "z-10",
+        "tokens": "z-20",
+        "fog": "z-30",
+        "ui_panels": "z-40",
+        "modals": "z-50",
+        "toasts": "z-[100]"
+      }
+    },
+    "components": {
+      "buttons": {
+        "primary": "bg-primary text-primary-foreground hover:bg-primary/90 font-cinzel font-bold uppercase tracking-wider shadow-glow transition-all duration-300",
+        "secondary": "bg-secondary text-secondary-foreground hover:bg-secondary/80 border border-border/50 font-lato",
+        "ghost": "hover:bg-primary/10 hover:text-primary text-muted-foreground transition-colors",
+        "destructive": "bg-destructive/20 text-destructive border border-destructive/50 hover:bg-destructive/30"
+      },
+      "cards": {
+        "base": "bg-card/95 backdrop-blur-sm border border-border/40 shadow-deep relative overflow-hidden",
+        "interactive": "hover:border-primary/40 transition-colors cursor-pointer group"
+      },
+      "inputs": {
+        "base": "bg-[#0a0908] border-border/30 focus:border-primary/60 focus:ring-1 focus:ring-primary/30 text-foreground placeholder:text-muted-foreground/50 shadow-inset_slot font-lato"
+      },
+      "dialogs": {
+        "overlay": "bg-black/80 backdrop-blur-sm",
+        "content": "bg-[#1a1614] border border-[#c5a059]/20 shadow-2xl max-w-lg w-full p-0 overflow-hidden"
+      }
+    },
+    "motion": {
+      "transitions": {
+        "default": "transition-all duration-200 ease-out",
+        "slow": "transition-all duration-500 ease-in-out"
+      },
+      "animations": {
+        "fade_in": "animate-in fade-in duration-300",
+        "slide_up": "animate-in slide-in-from-bottom-4 duration-500",
+        "pulse_glow": "animate-pulse"
+      }
+    }
+  },
+  "assets": {
+    "icons": {
+      "library": "lucide-react",
+      "style": "stroke-width={1.5} className='text-muted-foreground group-hover:text-primary transition-colors'"
+    },
+    "images": {
+      "textures": [
+        {
+          "name": "parchment_dark",
+          "url": "https://images.unsplash.com/photo-1634720092181-7b4a5908c5d5?crop=entropy&cs=srgb&fm=jpg&q=85",
+          "usage": "Background overlay for modals and character sheets (opacity 10%)"
+        }
+      ],
+      "placeholders": {
+        "token": "https://placehold.co/200x200/1a1614/c5a059?text=Token",
+        "map": "https://placehold.co/800x600/0f0e0d/3e3832?text=Map+Grid"
+      }
+    }
+  },
+  "accessibility": {
+    "contrast_check": "Ensure gold text (#c5a059) is only used on very dark backgrounds. Use off-white (#e3d5c5) for body text.",
+    "reduced_motion": "Disable map animations and dice physics if prefers-reduced-motion is true.",
+    "keyboard_nav": "Map grid must be navigable via arrow keys."
+  },
+  "instructions_to_main_agent": [
+    "1. SETUP: Install 'lucide-react' and 'clsx' 'tailwind-merge' immediately.",
+    "2. THEME: Apply the dark theme colors to 'tailwind.config.js' and 'index.css' FIRST. Do not start building components until the base variables are set.",
+    "3. FONTS: Add the Google Fonts import to 'index.css' immediately.",
+    "4. LAYOUT: The Map is the HERO. It must occupy absolute position or flex-grow to fill available space. Sidebars should float over it or push it slightly.",
+    "5. COMPONENTS: Do not use default Shadcn styles. Override them with the 'Obsidian & Parchment' classes defined above. Specifically, remove white backgrounds and replace with dark espresso colors.",
+    "6. MAP: Use HTML5 Canvas for the grid. It is more performant than thousands of DOM nodes.",
+    "7. TESTING: Add 'data-testid' to every interactive element (buttons, inputs, tokens).",
+    "8. CRITICAL: Never use pure black (#000000). Use #0f0e0d or #1a1614 for depth."
+  ],
+  "universal_guidelines": [
+    "Dark colors look good when used independently without gradients. DO NOT use dark colors as gradients",
+    "Don't make generic centered layouts, simplistic gradients, and uniform styling.",
+    "Create depth through layered design elements with z-index hierarchy",
+    "Use glass-morphism effects with backdrop filters (12-24px blur)",
+    "You MUST NOT apply universal transition. Eg: transition: all. This results in breaking transforms. Always add transitions for specific interactive elements like button, input excluding transforms",
+    "You MUST NOT center align the app container, ie do not add .App { text-align: center; } in the css file. This disrupts the human natural reading flow of text",
+    "Always use modern button styles like pill-shaped, or sharp button with interaction animations & color relevant to the app style",
+    "NEVER: use AI assistant Emoji characters like 🤖🧠💭💡🔮🎯📚🎭🎬🎪🎉🎊🎁🎀🎂🍰🎈🎨🎰💰💵💳🏦💎🪙💸🤑📊📈📉💹🔢🏆🥇 etc for icons.",
+    "Every interaction needs micro-animations - hover states, transitions, parallax effects, and entrance animations. Static = dead.",
+    "Use 2-3x more spacing than feels comfortable. Cramped designs look cheap.",
+    "Subtle grain textures, noise overlays, custom cursors, selection states, and loading animations: separates good from extraordinary.",
+    "Main agent relies on these image URLs. Missing categories (especially sponsor logos) = main agent will use placeholder text which is FORBIDDEN",
+    "Prioritize using pre-existing components from src/components/ui when applicable",
+    "Create new components that match the style and conventions of existing components when needed",
+    "Examine existing components to understand the project's component patterns before creating new ones",
+    "Components MUST use named exports (export const ComponentName = ...)",
+    "Pages MUST use default exports (export default function PageName() {...})",
+    "Use 'sonner' for toasts. Sonner component are located in /app/src/components/ui/sonner.tsx"
+  ]
+}
