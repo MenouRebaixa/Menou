@@ -21,9 +21,9 @@ ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
 
 # MongoDB connection
-mongo_url = os.environ['MONGO_URL']
+mongo_url = os.environ.get('MONGO_URL', 'mongodb://localhost:27017')
 client = AsyncIOMotorClient(mongo_url)
-db = client[os.environ['DB_NAME']]
+db = client[os.environ.get('DB_NAME', 'menou_rpg')]
 
 # JWT Config
 JWT_SECRET = os.environ.get('JWT_SECRET', 'dev-secret-key-change-in-production')
@@ -66,6 +66,7 @@ class TableBase(BaseModel):
     grid_size: int = 30  # pixels per cell
     grid_scale: float = 1.5  # meters per cell
     show_grid: bool = True
+    background_url: Optional[str] = None
 
 class TableCreate(TableBase):
     pass
@@ -180,6 +181,38 @@ class MusicTrackResponse(MusicTrackBase):
     id: str
     table_id: str
     created_at: str
+
+class InitiativeEntry(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    table_id: str
+    name: str
+    initiative_value: int
+    is_npc: bool = False
+    character_id: Optional[str] = None
+    hp_current: Optional[int] = None
+    hp_max: Optional[int] = None
+    notes: str = ""
+    order_index: int = 0
+    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+
+class InitiativeCreate(BaseModel):
+    table_id: str
+    name: str
+    initiative_value: int
+    is_npc: bool = False
+    character_id: Optional[str] = None
+    hp_current: Optional[int] = None
+    hp_max: Optional[int] = None
+    notes: str = ""
+
+class InitiativeState(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    table_id: str
+    entries: List[InitiativeEntry] = []
+    current_turn_index: int = 0
+    round_number: int = 1
+    is_active: bool = False
+    updated_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
 # ============ AUTH UTILITIES ============
 
@@ -342,12 +375,29 @@ async def get_table(table_id: str, current_user: dict = Depends(get_current_user
         raise HTTPException(status_code=404, detail="Table not found")
     return table
 
+@api_router.put("/tables/{table_id}/background")
+async def update_table_background(table_id: str, background_url: dict, current_user: dict = Depends(get_current_user)):
+    table = await db.tables.find_one({"id": table_id}, {"_id": 0})
+    if not table:
+        raise HTTPException(status_code=404, detail="Table not found")
+    
+    # Only master can update
+    if table["master_id"] != current_user["id"]:
+        raise HTTPException(status_code=403, detail="Only master can update table settings")
+    
+    await db.tables.update_one(
+        {"id": table_id},
+        {"$set": {"background_url": background_url.get("url", "")}}
+    )
+    
+    return {"message": "Background updated", "background_url": background_url.get("url", "")}
+
 # Character routes
 @api_router.post("/characters", response_model=Character3DT)
 async def create_character(char_data: CharacterCreate, current_user: dict = Depends(get_current_user)):
     char_id = str(uuid.uuid4())
-    pv_max = 5 + (char_data.resistencia - 1)
-    pm_max = 5 + (char_data.resistencia - 1)
+    pv_max = char_data.resistencia * 5
+    pm_max = char_data.resistencia * 5
     
     char_doc = {
         "id": char_id,
@@ -510,6 +560,183 @@ async def list_music(table_id: str, current_user: dict = Depends(get_current_use
     tracks = await db.music.find({"table_id": table_id}, {"_id": 0}).to_list(100)
     return tracks
 
+# Initiative routes
+@api_router.get("/initiative/table/{table_id}")
+async def get_initiative_state(table_id: str, current_user: dict = Depends(get_current_user)):
+    state = await db.initiative_states.find_one({"table_id": table_id}, {"_id": 0})
+    if not state:
+        # Create default state
+        default_state = {
+            "id": str(uuid.uuid4()),
+            "table_id": table_id,
+            "entries": [],
+            "current_turn_index": 0,
+            "round_number": 1,
+            "is_active": False,
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }
+        await db.initiative_states.insert_one(default_state)
+        return default_state
+    return state
+
+@api_router.post("/initiative/entry")
+async def add_initiative_entry(entry_data: InitiativeCreate, current_user: dict = Depends(get_current_user)):
+    # Get current state
+    state = await db.initiative_states.find_one({"table_id": entry_data.table_id}, {"_id": 0})
+    if not state:
+        state = {
+            "id": str(uuid.uuid4()),
+            "table_id": entry_data.table_id,
+            "entries": [],
+            "current_turn_index": 0,
+            "round_number": 1,
+            "is_active": False,
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }
+    
+    # Create new entry
+    new_entry = {
+        "id": str(uuid.uuid4()),
+        "table_id": entry_data.table_id,
+        "name": entry_data.name,
+        "initiative_value": entry_data.initiative_value,
+        "is_npc": entry_data.is_npc,
+        "character_id": entry_data.character_id,
+        "hp_current": entry_data.hp_current,
+        "hp_max": entry_data.hp_max,
+        "notes": entry_data.notes,
+        "order_index": len(state["entries"]),
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    state["entries"].append(new_entry)
+    
+    # Sort by initiative_value (descending)
+    state["entries"].sort(key=lambda x: x["initiative_value"], reverse=True)
+    
+    # Update order_index
+    for idx, entry in enumerate(state["entries"]):
+        entry["order_index"] = idx
+    
+    state["updated_at"] = datetime.now(timezone.utc).isoformat()
+    
+    # Upsert state
+    await db.initiative_states.update_one(
+        {"table_id": entry_data.table_id},
+        {"$set": state},
+        upsert=True
+    )
+    
+    return state
+
+@api_router.delete("/initiative/entry/{entry_id}")
+async def remove_initiative_entry(entry_id: str, table_id: str, current_user: dict = Depends(get_current_user)):
+    state = await db.initiative_states.find_one({"table_id": table_id}, {"_id": 0})
+    if not state:
+        raise HTTPException(status_code=404, detail="Initiative state not found")
+    
+    state["entries"] = [e for e in state["entries"] if e["id"] != entry_id]
+    
+    # Update order_index
+    for idx, entry in enumerate(state["entries"]):
+        entry["order_index"] = idx
+    
+    state["updated_at"] = datetime.now(timezone.utc).isoformat()
+    
+    await db.initiative_states.update_one(
+        {"table_id": table_id},
+        {"$set": state}
+    )
+    
+    return state
+
+@api_router.post("/initiative/next-turn/{table_id}")
+async def next_turn(table_id: str, current_user: dict = Depends(get_current_user)):
+    state = await db.initiative_states.find_one({"table_id": table_id}, {"_id": 0})
+    if not state:
+        raise HTTPException(status_code=404, detail="Initiative state not found")
+    
+    if not state["entries"]:
+        raise HTTPException(status_code=400, detail="No entries in initiative")
+    
+    state["current_turn_index"] = (state["current_turn_index"] + 1) % len(state["entries"])
+    
+    # Increment round if we wrapped around
+    if state["current_turn_index"] == 0:
+        state["round_number"] += 1
+    
+    state["updated_at"] = datetime.now(timezone.utc).isoformat()
+    
+    await db.initiative_states.update_one(
+        {"table_id": table_id},
+        {"$set": state}
+    )
+    
+    return state
+
+@api_router.post("/initiative/start/{table_id}")
+async def start_initiative(table_id: str, current_user: dict = Depends(get_current_user)):
+    state = await db.initiative_states.find_one({"table_id": table_id}, {"_id": 0})
+    if not state:
+        raise HTTPException(status_code=404, detail="Initiative state not found")
+    
+    state["is_active"] = True
+    state["current_turn_index"] = 0
+    state["round_number"] = 1
+    state["updated_at"] = datetime.now(timezone.utc).isoformat()
+    
+    await db.initiative_states.update_one(
+        {"table_id": table_id},
+        {"$set": state}
+    )
+    
+    return state
+
+@api_router.post("/initiative/reset/{table_id}")
+async def reset_initiative(table_id: str, current_user: dict = Depends(get_current_user)):
+    state = await db.initiative_states.find_one({"table_id": table_id}, {"_id": 0})
+    if not state:
+        raise HTTPException(status_code=404, detail="Initiative state not found")
+    
+    state["entries"] = []
+    state["current_turn_index"] = 0
+    state["round_number"] = 1
+    state["is_active"] = False
+    state["updated_at"] = datetime.now(timezone.utc).isoformat()
+    
+    await db.initiative_states.update_one(
+        {"table_id": table_id},
+        {"$set": state}
+    )
+    
+    return state
+
+@api_router.put("/initiative/entry/{entry_id}")
+async def update_initiative_entry(entry_id: str, table_id: str, updates: dict, current_user: dict = Depends(get_current_user)):
+    state = await db.initiative_states.find_one({"table_id": table_id}, {"_id": 0})
+    if not state:
+        raise HTTPException(status_code=404, detail="Initiative state not found")
+    
+    for entry in state["entries"]:
+        if entry["id"] == entry_id:
+            entry.update(updates)
+            break
+    
+    # Re-sort if initiative_value changed
+    if "initiative_value" in updates:
+        state["entries"].sort(key=lambda x: x["initiative_value"], reverse=True)
+        for idx, entry in enumerate(state["entries"]):
+            entry["order_index"] = idx
+    
+    state["updated_at"] = datetime.now(timezone.utc).isoformat()
+    
+    await db.initiative_states.update_one(
+        {"table_id": table_id},
+        {"$set": state}
+    )
+    
+    return state
+
 # ============ WEBSOCKET EVENTS ============
 
 @sio.event
@@ -555,13 +782,18 @@ async def dice_rolled(sid, data):
     table_id = data.get('table_id')
     await sio.emit('dice_result', data, room=table_id)
 
+@sio.event
+async def initiative_updated(sid, data):
+    table_id = data.get('table_id')
+    await sio.emit('initiative_changed', data, room=table_id, skip_sid=sid)
+
 # Include the router in the main app
 app.include_router(api_router)
 
 app.add_middleware(
     CORSMiddleware,
     allow_credentials=True,
-    allow_origins=os.environ.get('CORS_ORIGINS', '*').split(','),
+    allow_origins=["*"],  # Permite todas as origens
     allow_methods=["*"],
     allow_headers=["*"],
 )
